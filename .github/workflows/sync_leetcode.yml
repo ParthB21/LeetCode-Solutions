@@ -2,7 +2,7 @@ name: Sync LeetCode
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 8 * * *" # Runs daily
+    - cron: "0 8 * * *"
 
 jobs:
   run-sync:
@@ -27,14 +27,12 @@ jobs:
           python -c '
           import os, requests, json
 
-          # Language extension mapping
           EXT_MAP = {
               "cpp": "cpp", "java": "java", "python": "py", "python3": "py",
               "c": "c", "csharp": "cs", "javascript": "js", "typescript": "ts",
               "ruby": "rb", "swift": "swift", "golang": "go", "kotlin": "kt"
           }
 
-          # Safely pull env variables without backslashes in f-strings
           session = os.environ.get("LEETCODE_SESSION", "")
           csrf = os.environ.get("LEETCODE_CSRF_TOKEN", "")
 
@@ -42,10 +40,10 @@ jobs:
               "Cookie": "LEETCODE_SESSION=" + session + "; csrftoken=" + csrf + ";",
               "X-CSRFToken": csrf,
               "Referer": "https://leetcode.com",
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
           }
 
-          # Fetch recent accepted submissions
           query = """
           query submissionList($offset: Int!, $limit: Int!) {
             submissionList(offset: $offset, limit: $limit, statusDisplay: "Accepted") {
@@ -55,11 +53,19 @@ jobs:
             }
           }
           """
+          
           resp = requests.post("https://leetcode.com/graphql", json={"query": query, "variables": {"offset": 0, "limit": 20}}, headers=headers)
-          subs = resp.json().get("data", {}).get("submissionList", {}).get("submissions", [])
+          
+          # DIAGNOSTIC LOGS - This will tell us exactly what LeetCode is saying
+          print("--- LEETCODE RESPONSE STATUS ---")
+          print("Status Code:", resp.status_code)
+          print("Raw Response Content:", resp.text[:500]) 
+          print("--------------------------------")
+
+          subs = resp.json().get("data", {}).get("submissionList", {}).get("submissions", []) if resp.status_code == 200 else []
+          print(f"Found {len(subs)} accepted submissions to process.")
 
           for sub in subs:
-              # Get problem details to extract the correct FRONTEND display ID
               p_query = """
               query questionData($titleSlug: String!) {
                 question(titleSlug: $titleSlug) {
@@ -70,7 +76,6 @@ jobs:
               p_resp = requests.post("https://leetcode.com/graphql", json={"query": p_query, "variables": {"titleSlug": sub["titleSlug"]}}, headers=headers)
               frontend_id = p_resp.json().get("data", {}).get("question", {}).get("questionFrontendId", "0000")
 
-              # Fetch the actual code submission
               code_resp = requests.get("https://leetcode.com/submissions/detail/" + sub["id"] + "/export/", headers=headers)
               if code_resp.status_code == 200:
                   lang_lower = sub["lang"].lower()
@@ -83,7 +88,6 @@ jobs:
                   with open(file_path, "w") as f:
                       f.write(code_resp.text)
 
-          # Configure Git and push changes back to the repo
           os.system("git config --global user.name \"GitHub Action\"")
           os.system("git config --global user.email \"action@github.com\"")
           os.system("git add .")
