@@ -1,15 +1,16 @@
-name: Sync Leetcode
+name: LeetCode Synchronizer
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows you to run it manually
   schedule:
-    - cron: "0 8 * * *" # Runs daily
+    - cron: "0 8 * * *" # Runs every day at 8:00 AM UTC
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync Code
-        uses: LeoYulinYuan/leetcode-sync-actions@v1.0.5
+      - name: Run LeetCode Synchronizer
+        uses: dos-m0nk3y/LeetCode-Synchronizer@v1.1.0
         with:
-          leetcode-csrf-token: ${{ secrets.LEETCODE_CSRF_TOKEN }}
-          leetcode-session: ${{ secrets.LEETCODE_SESSION }}
-          destination-folder: "Solutions"  # Organizes all code inside a 'Solutions' folder
+          GITHUB_TOKEN: ${{ github.token }}
+          LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
+          LEETCODE_CSRF_TOKEN: ${{ secrets.LEETCODE_CSRF_TOKEN }}
