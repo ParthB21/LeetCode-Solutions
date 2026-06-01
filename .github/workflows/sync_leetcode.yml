@@ -27,16 +27,20 @@ jobs:
           python -c '
           import os, requests, json
 
-          # Language extension mapping (fully supporting Java)
+          # Language extension mapping
           EXT_MAP = {
               "cpp": "cpp", "java": "java", "python": "py", "python3": "py",
               "c": "c", "csharp": "cs", "javascript": "js", "typescript": "ts",
               "ruby": "rb", "swift": "swift", "golang": "go", "kotlin": "kt"
           }
 
+          # Safely pull env variables without backslashes in f-strings
+          session = os.environ.get("LEETCODE_SESSION", "")
+          csrf = os.environ.get("LEETCODE_CSRF_TOKEN", "")
+
           headers = {
-              "Cookie": f"LEETCODE_SESSION={os.getenv(\"LEETCODE_SESSION\")}; csrftoken={os.getenv(\"LEETCODE_CSRF_TOKEN\")};",
-              "X-CSRFToken": os.getenv("LEETCODE_CSRF_TOKEN"),
+              "Cookie": "LEETCODE_SESSION=" + session + "; csrftoken=" + csrf + ";",
+              "X-CSRFToken": csrf,
               "Referer": "https://leetcode.com",
               "Content-Type": "application/json"
           }
@@ -67,15 +71,15 @@ jobs:
               frontend_id = p_resp.json().get("data", {}).get("question", {}).get("questionFrontendId", "0000")
 
               # Fetch the actual code submission
-              code_resp = requests.get(f"https://leetcode.com/submissions/detail/{sub['id']}/export/", headers=headers)
+              code_resp = requests.get("https://leetcode.com/submissions/detail/" + sub["id"] + "/export/", headers=headers)
               if code_resp.status_code == 200:
                   lang_lower = sub["lang"].lower()
                   ext = EXT_MAP.get(lang_lower, "txt")
                   
-                  dir_name = f"Solutions/{frontend_id}-{sub['titleSlug']}"
+                  dir_name = "Solutions/" + frontend_id + "-" + sub["titleSlug"]
                   os.makedirs(dir_name, exist_ok=True)
                   
-                  file_path = f"{dir_name}/Solution.{ext}"
+                  file_path = dir_name + "/Solution." + ext
                   with open(file_path, "w") as f:
                       f.write(code_resp.text)
 
