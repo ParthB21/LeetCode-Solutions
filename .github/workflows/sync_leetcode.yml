@@ -1,16 +1,88 @@
-name: LeetCode Synchronizer
+name: Sync LeetCode
 on:
-  workflow_dispatch: # Allows you to run it manually
+  workflow_dispatch:
   schedule:
-    - cron: "0 8 * * *" # Runs every day at 8:00 AM UTC
+    - cron: "0 8 * * *" # Runs daily
 
 jobs:
-  build:
+  run-sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Run LeetCode Synchronizer
-        uses: dos-m0nk3y/LeetCode-Synchronizer@v1.1.0
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          GITHUB_TOKEN: ${{ github.token }}
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      - name: Sync Submissions
+        env:
           LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
           LEETCODE_CSRF_TOKEN: ${{ secrets.LEETCODE_CSRF_TOKEN }}
+        run: |
+          python -c '
+          import os, requests, json
+
+          # Language extension mapping (fully supporting Java)
+          EXT_MAP = {
+              "cpp": "cpp", "java": "java", "python": "py", "python3": "py",
+              "c": "c", "csharp": "cs", "javascript": "js", "typescript": "ts",
+              "ruby": "rb", "swift": "swift", "golang": "go", "kotlin": "kt"
+          }
+
+          headers = {
+              "Cookie": f"LEETCODE_SESSION={os.getenv(\"LEETCODE_SESSION\")}; csrftoken={os.getenv(\"LEETCODE_CSRF_TOKEN\")};",
+              "X-CSRFToken": os.getenv("LEETCODE_CSRF_TOKEN"),
+              "Referer": "https://leetcode.com",
+              "Content-Type": "application/json"
+          }
+
+          # Fetch recent accepted submissions
+          query = """
+          query submissionList($offset: Int!, $limit: Int!) {
+            submissionList(offset: $offset, limit: $limit, statusDisplay: "Accepted") {
+              submissions {
+                id title titleSlug lang timestamp
+              }
+            }
+          }
+          """
+          resp = requests.post("https://leetcode.com/graphql", json={"query": query, "variables": {"offset": 0, "limit": 20}}, headers=headers)
+          subs = resp.json().get("data", {}).get("submissionList", {}).get("submissions", [])
+
+          for sub in subs:
+              # Get problem details to extract the correct FRONTEND display ID
+              p_query = """
+              query questionData($titleSlug: String!) {
+                question(titleSlug: $titleSlug) {
+                  questionFrontendId
+                }
+              }
+              """
+              p_resp = requests.post("https://leetcode.com/graphql", json={"query": p_query, "variables": {"titleSlug": sub["titleSlug"]}}, headers=headers)
+              frontend_id = p_resp.json().get("data", {}).get("question", {}).get("questionFrontendId", "0000")
+
+              # Fetch the actual code submission
+              code_resp = requests.get(f"https://leetcode.com/submissions/detail/{sub['id']}/export/", headers=headers)
+              if code_resp.status_code == 200:
+                  lang_lower = sub["lang"].lower()
+                  ext = EXT_MAP.get(lang_lower, "txt")
+                  
+                  dir_name = f"Solutions/{frontend_id}-{sub['titleSlug']}"
+                  os.makedirs(dir_name, exist_ok=True)
+                  
+                  file_path = f"{dir_name}/Solution.{ext}"
+                  with open(file_path, "w") as f:
+                      f.write(code_resp.text)
+
+          # Configure Git and push changes back to the repo
+          os.system("git config --global user.name \"GitHub Action\"")
+          os.system("git config --global user.email \"action@github.com\"")
+          os.system("git add .")
+          os.system("git commit -m \"Sync latest LeetCode solutions\" || exit 0")
+          os.system("git push")
+          '
