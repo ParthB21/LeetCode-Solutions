@@ -41,43 +41,45 @@ jobs:
               "X-CSRFToken": csrf,
               "Referer": "https://leetcode.com",
               "Content-Type": "application/json",
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
           }
 
-          query = """
+          # 1. Fetch recent accepted submissions list
+          list_query = """
           query submissionList($offset: Int!, $limit: Int!) {
             submissionList(offset: $offset, limit: $limit, statusDisplay: "Accepted") {
               submissions {
-                id title titleSlug lang timestamp
+                id title titleSlug lang
               }
             }
           }
           """
           
-          resp = requests.post("https://leetcode.com/graphql", json={"query": query, "variables": {"offset": 0, "limit": 20}}, headers=headers)
+          resp = requests.post("https://leetcode.com/graphql", json={"query": list_query, "variables": {"offset": 0, "limit": 20}}, headers=headers)
+          subs = resp.json().get("data", {}).get("submissionList", {}).get("submissions", [])
           
-          # DIAGNOSTIC LOGS - This will tell us exactly what LeetCode is saying
-          print("--- LEETCODE RESPONSE STATUS ---")
-          print("Status Code:", resp.status_code)
-          print("Raw Response Content:", resp.text[:500]) 
-          print("--------------------------------")
-
-          subs = resp.json().get("data", {}).get("submissionList", {}).get("submissions", []) if resp.status_code == 200 else []
-          print(f"Found {len(subs)} accepted submissions to process.")
+          print(f"Found {len(subs)} accepted submissions to check.")
 
           for sub in subs:
-              p_query = """
-              query questionData($titleSlug: String!) {
-                question(titleSlug: $titleSlug) {
-                  questionFrontendId
+              # 2. Query individual submission details via GraphQL to get the raw source code
+              detail_query = """
+              query submissionDetails($submissionId: Int!) {
+                submissionDetails(submissionId: $submissionId) {
+                  code
+                  question {
+                    questionFrontendId
+                  }
                 }
               }
               """
-              p_resp = requests.post("https://leetcode.com/graphql", json={"query": p_query, "variables": {"titleSlug": sub["titleSlug"]}}, headers=headers)
-              frontend_id = p_resp.json().get("data", {}).get("question", {}).get("questionFrontendId", "0000")
+              
+              d_resp = requests.post("https://leetcode.com/graphql", json={"query": detail_query, "variables": {"submissionId": int(sub["id"])}}, headers=headers)
+              d_data = d_resp.json().get("data", {}).get("submissionDetails", {})
+              
+              raw_code = d_data.get("code")
+              frontend_id = d_data.get("question", {}).get("questionFrontendId", "0000")
 
-              code_resp = requests.get("https://leetcode.com/submissions/detail/" + sub["id"] + "/export/", headers=headers)
-              if code_resp.status_code == 200:
+              if raw_code:
                   lang_lower = sub["lang"].lower()
                   ext = EXT_MAP.get(lang_lower, "txt")
                   
@@ -86,8 +88,10 @@ jobs:
                   
                   file_path = dir_name + "/Solution." + ext
                   with open(file_path, "w") as f:
-                      f.write(code_resp.text)
+                      f.write(raw_code)
+                  print(f"Successfully processed: {frontend_id} - {sub['title']}")
 
+          # 3. Push changes
           os.system("git config --global user.name \"GitHub Action\"")
           os.system("git config --global user.email \"action@github.com\"")
           os.system("git add .")
