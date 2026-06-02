@@ -313,10 +313,16 @@ def maybe_push(dry_run: bool) -> None:
     if not (ROOT / ".git").exists():
         print("Not a git repo yet. Run 'git init' and add a remote, then re-run with --push.")
         return
-    git("add", "-A")  # respects .gitignore (.env and data/state.json stay out)
+    git("add", "-A")  # .env stays out via .gitignore; data/state.json is committed
     staged = git("diff", "--cached", "--name-only").stdout.split()
     if not staged:
         print("Nothing new to commit.")
+        return
+    # If the ONLY change is the index's "last updated" date (no new solutions or
+    # state), skip — otherwise every scheduled run produces a noise commit.
+    if set(staged) <= {"README.md"}:
+        print("No new solutions; skipping index-only commit.")
+        git("checkout", "--", "README.md")
         return
     msg = f"Sync {len(staged)} LeetCode file(s) — {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     commit = git("commit", "-m", msg)

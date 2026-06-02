@@ -16,7 +16,7 @@ python sync.py --push         # sync, then commit & push
 ```
 </details>
 
-**8 solutions** · last updated 2026-06-02
+**8 solutions** · last updated 2026-06-01
 
 ## Solutions
 
