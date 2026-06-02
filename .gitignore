@@ -1,8 +1,8 @@
 # Secrets — never commit your session cookies
 .env
 
-# Local sync state
-data/state.json
+# Note: data/state.json IS committed so the GitHub Action remembers what it
+# already synced (it contains no secrets — just submission ids/timestamps).
 
 # Python
 __pycache__/

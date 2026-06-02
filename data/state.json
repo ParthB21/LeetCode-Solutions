@@ -1,0 +1,56 @@
+{
+  "synced": {
+    "1566705429": {
+      "lang": "java",
+      "slug": "two-sum",
+      "timestamp": 1741415407
+    },
+    "1882005806": {
+      "lang": "python",
+      "slug": "paint-house-iv",
+      "timestamp": 1768150975
+    },
+    "1981944528": {
+      "lang": "c",
+      "slug": "mirror-distance-of-an-integer",
+      "timestamp": 1776533506
+    },
+    "1982977986": {
+      "lang": "c",
+      "slug": "maximum-distance-between-a-pair-of-values",
+      "timestamp": 1776626823
+    },
+    "1983853585": {
+      "lang": "c",
+      "slug": "two-furthest-houses-with-different-colors",
+      "superseded": true,
+      "timestamp": 1776708850
+    },
+    "1983854796": {
+      "lang": "c",
+      "slug": "two-furthest-houses-with-different-colors",
+      "timestamp": 1776708921
+    },
+    "1984557273": {
+      "lang": "python",
+      "slug": "minimize-hamming-distance-after-swap-operations",
+      "timestamp": 1776784310
+    },
+    "1984948137": {
+      "lang": "c",
+      "slug": "words-within-two-edits-of-dictionary",
+      "timestamp": 1776827045
+    },
+    "2019428433": {
+      "lang": "python",
+      "slug": "minimum-cost-of-buying-candies-with-discount",
+      "superseded": true,
+      "timestamp": 1780337373
+    },
+    "2019607954": {
+      "lang": "python",
+      "slug": "minimum-cost-of-buying-candies-with-discount",
+      "timestamp": 1780360345
+    }
+  }
+}
