@@ -1,0 +1,11 @@
+# Secrets — never commit your session cookies
+.env
+
+# Local sync state
+data/state.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -1,0 +1,25 @@
+/*
+ * 1. Two Sum
+ * https://leetcode.com/problems/two-sum/
+ * Accepted 2025-03-08
+ * Runtime 99 ms (beats 6.0%) | Memory 45 MB (beats 100.0%)
+ */
+
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        int[] result = new int[2];
+                    
+        for (int i = 0; i<nums.length; i++){
+            for (int j = 0; j<nums.length; j++){
+                int sum = nums[i]+nums[j];
+                if(sum==target&&i!=j){
+                    result[0] = i;
+                    result[1] = j;
+                    break;
+                }
+                
+            }
+        }
+        return result;    
+    }
+}
