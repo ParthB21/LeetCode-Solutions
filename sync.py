@@ -341,8 +341,11 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="don't write files or touch git")
     args = parser.parse_args()
 
-    session_cookie = os.getenv("LEETCODE_SESSION")
-    csrftoken = os.getenv("LEETCODE_CSRFTOKEN")
+    # .strip() + BOM removal: cookies pasted via editors or piped through some
+    # shells can pick up surrounding whitespace or a UTF-8 BOM, which breaks the
+    # latin-1-only HTTP header encoding.
+    session_cookie = (os.getenv("LEETCODE_SESSION") or "").strip().lstrip("﻿")
+    csrftoken = (os.getenv("LEETCODE_CSRFTOKEN") or "").strip().lstrip("﻿")
     domain = os.getenv("LEETCODE_DOMAIN", "leetcode.com")
     solutions_dir = ROOT / os.getenv("SOLUTIONS_DIR", "solutions")
 
